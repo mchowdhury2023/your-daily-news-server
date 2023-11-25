@@ -27,6 +27,8 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         //await client.connect();
 
+        const articleCollection = client.db('newsArticle').collection('articles');
+
         //auth related api
         app.post('/jwt', async (req, res) => {
             const user = req.body;
@@ -46,6 +48,54 @@ async function run() {
 
 
         })
+
+        //article api
+
+        app.get('/articles', async (req, res) => {
+            const cursor = articleCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.get('/articles/:id', async (req, res) => {
+            const id = req.params.id;
+            if (!id || id.length !== 24) {
+                return res.status(400).send({ message: 'Invalid article ID' });
+            }
+            const query = { _id: new ObjectId(id) };
+            const result = await articleCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.get('/trending-articles', async (req, res) => {
+            try {
+                const cursor = articleCollection.find().sort({ timesVisited: -1 }).limit(2); 
+                const trendingArticles = await cursor.toArray();
+                res.json(trendingArticles);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: "Internal Server Error" });
+            }
+        });
+        
+
+        app.post('/addArticles', async (req, res) => {
+
+            const article = req.body;
+            console.log(article);
+            article.timesVisited = 0;
+            const result = await articleCollection.insertOne(article);
+            res.send(result);
+        });
+
+        app.patch('/article/:id/visit', async (req, res) => {
+            const { id } = req.params;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = { $inc: { timesVisited: 1 } };
+            const result = await articleCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+        
 
 
         // Send a ping to confirm a successful connection
