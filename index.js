@@ -28,6 +28,7 @@ async function run() {
         //await client.connect();
 
         const articleCollection = client.db('newsArticle').collection('articles');
+        const userCollection = client.db('dailyNews').collection('users');
 
         //auth related api
         app.post('/jwt', async (req, res) => {
@@ -95,6 +96,36 @@ async function run() {
             const result = await articleCollection.updateOne(filter, updateDoc);
             res.send(result);
         });
+
+        //user api
+
+        app.get('/users', async (req, res) => {
+            const cursor = userCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.get('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await userCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+
+            user.membershipStatus = null;
+            user.membershipTaken = null;
+          
+            const query = { email: user.email }
+            const existingUser = await userCollection.findOne(query);
+            if (existingUser) {
+              return res.send({ message: 'user already exists', insertedId: null })
+            }
+            const result = await userCollection.insertOne(user);
+            res.send(result);
+          });
         
 
 
