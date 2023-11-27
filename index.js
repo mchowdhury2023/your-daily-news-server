@@ -58,6 +58,17 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/myarticles', async (req, res) => {
+
+            //console.log(req.query.email);
+            let query = {};
+            if (req.query?.email) {
+                query = { authorEmail: req.query.email }
+            }
+            const result = await articleCollection.find(query).toArray();
+            res.send(result);
+        });
+
         app.get('/articles/:id', async (req, res) => {
             const id = req.params.id;
             if (!id || id.length !== 24) {
