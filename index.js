@@ -29,6 +29,7 @@ async function run() {
 
         const articleCollection = client.db('newsArticle').collection('articles');
         const userCollection = client.db('dailyNews').collection('users');
+        const publisherCollection = client.db('dailyNews').collection('publishers');
 
         //auth related api
         app.post('/jwt', async (req, res) => {
@@ -173,6 +174,29 @@ async function run() {
               res.status(500).json({ message: 'Internal server error' });
             }
           });
+
+          app.patch('/users/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+              $set: {
+                role: 'admin'
+              }
+            }
+            const result = await userCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+          })
+
+          //publisher
+
+          app.post('/addpublisher', async (req, res) => {
+
+            const publisher = req.body;
+            console.log(article);
+          
+            const result = await publisherCollection.insertOne(publisher);
+            res.send(result);
+        });
           
         
 
