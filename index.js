@@ -132,13 +132,22 @@ async function run() {
         app.patch('/articles/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
-            const updatedFields = req.body;
+            const { status, declineReason } = req.body;
+          
+            const updateFields = { status };
+            if (status === 'declined' && declineReason) {
+              updateFields.declineReason = declineReason;
+            }
+          
             const updateDoc = {
-                $set: updatedFields,
+              $set: updateFields,
             };
+          
             const result = await articleCollection.updateOne(filter, updateDoc);
             res.send(result);
-        });
+          });
+          
+          
         
 
 
@@ -214,6 +223,40 @@ async function run() {
               res.status(500).json({ message: 'Internal server error' });
             }
           });
+
+          app.patch('/updatesubscription/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const updatedUser = req.body;
+
+
+            console.log("Updating user:", updatedUser);
+
+            const updateDoc = {
+                $set: {
+                    membershipStatus: updatedUser.membershipStatus,
+                    membershipTaken: updatedUser.membershipTaken
+                },
+            };
+
+            try {
+                const result = await userCollection.updateOne(filter, updateDoc);
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).json({ message: 'User not found' });
+                }
+
+                if (result.modifiedCount === 0) {
+                    return res.status(200).json({ message: 'No changes made to the user profile' });
+                }
+
+                return res.json({ message: 'User updated successfully', modifiedCount: result.modifiedCount });
+
+            } catch (err) {
+                console.error('Error updating user:', err);
+                res.status(500).json({ message: 'Internal server error' });
+            }
+        });
 
           app.patch('/users/admin/:id', async (req, res) => {
             const id = req.params.id;
