@@ -98,24 +98,27 @@ async function run() {
             let query = { status: 'approved' };
         
             if (search) {
-                query.title = { $regex: search, $options: 'i' }; // Case-insensitive search in title
+                query.title = { $regex: search, $options: 'i' };
             }
         
             if (publisher) {
-                query.publisher = new ObjectId(publisher);
+                query.publisher = publisher;
             }
         
             if (tags) {
-                query.tags = { $in: tags.split(",") }; // Assuming tags is a comma-separated string
+                query.tags = { $in: tags.split(",") };
             }
         
             try {
                 const articles = await articleCollection.find(query).toArray();
                 res.json(articles);
             } catch (error) {
-                res.status(500).send("Error fetching articles: " + error);
+                console.error("Error fetching articles:", error);
+                res.status(500).send("Error fetching articles: " + error.message);
             }
+            
         });
+        
         
 
         app.post('/addArticles', async (req, res) => {
@@ -320,6 +323,21 @@ async function run() {
             res.send(result);
         });
           
+          //get all testimonials
+          app.get('/testimonials', async (req, res) => {
+            const cursor = testimonialCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        //post all testimonial
+
+        app.post('/testimonials', async (req, res) => {
+            const newTestimonial = req.body;
+            const result = await testimonialCollection.insertOne(newTestimonial);
+            res.send(result);
+        });
+
         
 
 
