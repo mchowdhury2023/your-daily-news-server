@@ -58,6 +58,7 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
+        
 
         app.get('/myarticles', async (req, res) => {
 
@@ -108,6 +109,45 @@ async function run() {
             const result = await articleCollection.updateOne(filter, updateDoc);
             res.send(result);
         });
+        
+        app.put('/articles/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updatedArticle = req.body;
+            const service = {
+                $set: {
+                    title: updatedArticle.title,
+                    image: updatedArticle.image,
+                    publisher: updatedArticle.publisher,
+                    tags: updatedArticle.tags,
+                    description: updatedArticle.description,
+
+                }
+            }
+            const result = await articleCollection.updateOne(query, service, options);
+            res.send(result);
+        })
+
+        app.patch('/articles/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedFields = req.body;
+            const updateDoc = {
+                $set: updatedFields,
+            };
+            const result = await articleCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        });
+        
+
+
+        app.delete('/articles/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await articleCollection.deleteOne(query);
+            res.send(result);
+        })
 
         //user api
 
@@ -189,10 +229,17 @@ async function run() {
 
           //publisher
 
+          app.get('/publishers', async (req, res) => {
+
+            const cursor = publisherCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
           app.post('/addpublisher', async (req, res) => {
 
             const publisher = req.body;
-            console.log(article);
+            console.log(publisher);
           
             const result = await publisherCollection.insertOne(publisher);
             res.send(result);
