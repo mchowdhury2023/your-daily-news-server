@@ -91,6 +91,31 @@ async function run() {
                 res.status(500).send({ message: "Internal Server Error" });
             }
         });
+
+        app.get('/searcharticles', async (req, res) => {
+            const { search, publisher, tags } = req.query;
+        
+            let query = { status: 'approved' };
+        
+            if (search) {
+                query.title = { $regex: search, $options: 'i' }; // Case-insensitive search in title
+            }
+        
+            if (publisher) {
+                query.publisher = new ObjectId(publisher);
+            }
+        
+            if (tags) {
+                query.tags = { $in: tags.split(",") }; // Assuming tags is a comma-separated string
+            }
+        
+            try {
+                const articles = await articleCollection.find(query).toArray();
+                res.json(articles);
+            } catch (error) {
+                res.status(500).send("Error fetching articles: " + error);
+            }
+        });
         
 
         app.post('/addArticles', async (req, res) => {
@@ -132,20 +157,27 @@ async function run() {
         app.patch('/articles/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
-            const { status, declineReason } = req.body;
-          
-            const updateFields = { status };
-            if (status === 'declined' && declineReason) {
-              updateFields.declineReason = declineReason;
+            const { status, declineReason, isPremium } = req.body;
+        
+            const updateFields = {};
+            if (status) {
+                updateFields.status = status;
             }
-          
+            if (status === 'declined' && declineReason) {
+                updateFields.declineReason = declineReason;
+            }
+            if (isPremium !== undefined) {
+                updateFields.isPremium = isPremium;
+            }
+        
             const updateDoc = {
-              $set: updateFields,
+                $set: updateFields,
             };
-          
+        
             const result = await articleCollection.updateOne(filter, updateDoc);
             res.send(result);
-          });
+        });
+        
           
           
         
