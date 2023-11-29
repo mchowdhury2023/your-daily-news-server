@@ -222,6 +222,28 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/adminusers', async (req, res) => {
+            const page = parseInt(req.query.page) || 1; 
+            const limit = parseInt(req.query.limit) || 5;
+        
+   
+            const skipCount = (page - 1) * limit;
+        
+            try {
+                const users = await userCollection.find()
+                    .skip(skipCount)
+                    .limit(limit)
+                    .toArray();
+        
+                const totalCount = await userCollection.countDocuments();
+        
+                res.json({ users, totalCount });
+            } catch (error) {
+                res.status(500).json({ message: 'Error fetching users', error });
+            }
+        });
+        
+
         app.get('/users/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -244,6 +266,22 @@ async function run() {
             const result = await userCollection.insertOne(user);
             res.send(result);
           });
+
+          app.get('/users/admin/:email', async (req, res) => {
+            const email = req.params.email;
+      
+            // if (email !== req.decoded.email) {
+            //   return res.status(403).send({ message: 'forbidden access' })
+            // }
+      
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            let admin = false;
+            if (user) {
+              admin = user?.role === 'admin';
+            }
+            res.send({ admin });
+          })
 
           //update user info based on email
           app.patch('/users/:email', async (req, res) => {
@@ -279,6 +317,15 @@ async function run() {
               res.status(500).json({ message: 'Internal server error' });
             }
           });
+
+          app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await userCollection.deleteOne(query);
+            res.send(result);
+          })
+
+          //subscribtion
 
           app.patch('/updatesubscription/:email', async (req, res) => {
             const email = req.params.email;
