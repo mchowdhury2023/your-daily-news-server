@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+//const stripe = require('stripe')('your_stripe_secret_key');
 
 require('dotenv').config()
 
@@ -30,6 +31,7 @@ async function run() {
         const articleCollection = client.db('newsArticle').collection('articles');
         const userCollection = client.db('dailyNews').collection('users');
         const publisherCollection = client.db('dailyNews').collection('publishers');
+        const testimonialCollection = client.db('dailyNews').collection('testimonials');
 
         //auth related api
         app.post('/jwt', async (req, res) => {
@@ -58,6 +60,25 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result);
         })
+
+        app.get('/adminarticles', async (req, res) => {
+            const page = parseInt(req.query.page);
+            const size = parseInt(req.query.limit);
+
+            const skipCount = (page - 1) * size;
+        
+            // Fetching articles with pagination
+            const articles = await articleCollection.find()
+                .skip(skipCount)
+                .limit(size)
+                .toArray();
+        
+            // Counting the total number of articles for pagination
+            const totalCount = await articleCollection.countDocuments();
+        
+            res.send({ articles, totalCount });
+        });
+        
         
 
         app.get('/myarticles', async (req, res) => {
@@ -83,7 +104,7 @@ async function run() {
 
         app.get('/trending-articles', async (req, res) => {
             try {
-                const cursor = articleCollection.find().sort({ timesVisited: -1 }).limit(2); 
+                const cursor = articleCollection.find().sort({ timesVisited: -1 }).limit(6); 
                 const trendingArticles = await cursor.toArray();
                 res.json(trendingArticles);
             } catch (error) {
@@ -338,6 +359,17 @@ async function run() {
             res.send(result);
         });
 
+        //Payment
+        // app.post('/create-payment-intent', async (req, res) => {
+        //     const { price } = req.body;
+        //     const paymentIntent = await stripe.paymentIntents.create({
+        //       amount: price * 100, // Convert to cents
+        //       currency: 'usd',
+        //       payment_method_types: ['card'],
+        //     });
+          
+        //     res.send({ clientSecret: paymentIntent.client_secret });
+        //   });
         
 
 
