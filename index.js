@@ -43,7 +43,7 @@ async function run() {
   
       // middlewares 
       const verifyToken = (req, res, next) => {
-        console.log('inside verify token', req.headers.authorization);
+       // console.log('inside verify token', req.headers.authorization);
         if (!req.headers.authorization) {
           return res.status(401).send({ message: 'unauthorized access' });
         }
@@ -374,49 +374,6 @@ async function run() {
             }
           });
 
-          app.delete('/users/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
-            const result = await userCollection.deleteOne(query);
-            res.send(result);
-          })
-
-          //subscribtion
-
-          app.patch('/updatesubscription/:email', async (req, res) => {
-            const email = req.params.email;
-            const filter = { email: email };
-            const updatedUser = req.body;
-
-
-            console.log("Updating user:", updatedUser);
-
-            const updateDoc = {
-                $set: {
-                    membershipStatus: updatedUser.membershipStatus,
-                    membershipTaken: updatedUser.membershipTaken
-                },
-            };
-
-            try {
-                const result = await userCollection.updateOne(filter, updateDoc);
-
-                if (result.matchedCount === 0) {
-                    return res.status(404).json({ message: 'User not found' });
-                }
-
-                if (result.modifiedCount === 0) {
-                    return res.status(200).json({ message: 'No changes made to the user profile' });
-                }
-
-                return res.json({ message: 'User updated successfully', modifiedCount: result.modifiedCount });
-
-            } catch (err) {
-                console.error('Error updating user:', err);
-                res.status(500).json({ message: 'Internal server error' });
-            }
-        });
-
           app.patch('/users/admin/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
@@ -428,6 +385,87 @@ async function run() {
             const result = await userCollection.updateOne(filter, updatedDoc);
             res.send(result);
           })
+
+          app.delete('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await userCollection.deleteOne(query);
+            res.send(result);
+          })
+
+          //subscribtion
+
+        //   app.patch('/updatesubscription/:email', async (req, res) => {
+        //     const email = req.params.email;
+        //     const filter = { email: email };
+        //     const updatedUser = req.body;
+
+
+        //     console.log("Updating user:", updatedUser);
+
+        //     const updateDoc = {
+        //         $set: {
+        //             membershipStatus: updatedUser.membershipStatus,
+        //             membershipTaken: updatedUser.membershipTaken
+        //         },
+        //     };
+
+        //     try {
+        //         const result = await userCollection.updateOne(filter, updateDoc);
+
+        //         if (result.matchedCount === 0) {
+        //             return res.status(404).json({ message: 'User not found' });
+        //         }
+
+        //         if (result.modifiedCount === 0) {
+        //             return res.status(200).json({ message: 'No changes made to the user profile' });
+        //         }
+
+        //         return res.json({ message: 'User updated successfully', modifiedCount: result.modifiedCount });
+
+        //     } catch (err) {
+        //         console.error('Error updating user:', err);
+        //         res.status(500).json({ message: 'Internal server error' });
+        //     }
+        // });
+
+          //trying to set timer for subscription
+        app.patch('/updatesubscription/:email', async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const updatedUser = req.body;
+        
+            console.log("Updating user:", updatedUser);
+        
+            const updateDoc = {
+                $set: {
+                    membershipStatus: updatedUser.membershipStatus,
+                    membershipTaken: updatedUser.membershipTaken,
+                    subscriptionStartTime: updatedUser.subscriptionStartTime, // Store subscription start time
+                    lastLoginTime: updatedUser.lastLoginTime,
+                    accumulatedLoginDuration: updatedUser.accumulatedLoginDuration
+                },
+            };
+        
+            try {
+                        const result = await userCollection.updateOne(filter, updateDoc);
+        
+                        if (result.matchedCount === 0) {
+                            return res.status(404).json({ message: 'User not found' });
+                        }
+        
+                        if (result.modifiedCount === 0) {
+                            return res.status(200).json({ message: 'No changes made to the user profile' });
+                        }
+        
+                        return res.json({ message: 'User updated successfully', modifiedCount: result.modifiedCount });
+        
+                    } catch (err) {
+                        console.error('Error updating user:', err);
+                        res.status(500).json({ message: 'Internal server error' });
+                    }
+        });
+        
 
           //publisher
 
