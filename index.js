@@ -37,7 +37,7 @@ async function run() {
            // jwt related api
     app.post('/jwt', async (req, res) => {
         const user = req.body;
-        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
         res.send({ token });
       })
   
@@ -55,6 +55,19 @@ async function run() {
           req.decoded = decoded;
           next();
         })
+      }
+
+      
+    // use verify admin after verifyToken
+    const verifyAdmin = async (req, res, next) => {
+        const email = req.decoded.email;
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        const isAdmin = user?.role === 'admin';
+        if (!isAdmin) {
+          return res.status(403).send({ message: 'forbidden access' });
+        }
+        next();
       }
 
         //auth related api
@@ -246,7 +259,7 @@ async function run() {
             res.send(result);
         })
 
-        app.get('/adminusers', verifyToken, async (req, res) => {
+        app.get('/adminusers', verifyToken,verifyAdmin, async (req, res) => {
             console.log(req.headers);
             const page = parseInt(req.query.page) || 1; 
             const limit = parseInt(req.query.limit) || 5;
@@ -292,12 +305,12 @@ async function run() {
             res.send(result);
           });
 
-          app.get('/users/admin/:email', async (req, res) => {
+          app.get('/users/admin/:email',verifyToken, async (req, res) => {
             const email = req.params.email;
       
-            // if (email !== req.decoded.email) {
-            //   return res.status(403).send({ message: 'forbidden access' })
-            // }
+            if (email !== req.decoded.email) {
+              return res.status(403).send({ message: 'forbidden access' })
+            }
       
             const query = { email: email };
             const user = await userCollection.findOne(query);
@@ -307,6 +320,24 @@ async function run() {
             }
             res.send({ admin });
           })
+
+          //check user has membership
+          app.get('/users/membership/:email', verifyToken, async (req, res) => {
+            const email = req.params.email;
+        
+            if (email !== req.decoded.email) {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
+        
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            let isPremiumMember = false;
+            if (user){
+                isPremiumMember=user?.membershipStatus === "premium";
+            } 
+            res.send({ isPremiumMember });
+        });
+        
 
           //update user info based on email
           app.patch('/users/:email', async (req, res) => {
@@ -407,10 +438,10 @@ async function run() {
             res.send(result);
         });
 
-          app.post('/addpublisher', async (req, res) => {
+          app.post('/addpublisher',verifyToken, verifyAdmin, async (req, res) => {
 
             const publisher = req.body;
-            console.log(publisher);
+           // console.log(publisher);
           
             const result = await publisherCollection.insertOne(publisher);
             res.send(result);
@@ -447,7 +478,7 @@ async function run() {
 
         // Send a ping to confirm a successful connection
        // await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+      //  console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
         //await client.close();
