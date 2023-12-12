@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const axios = require('axios');
+
 //const stripe = require('stripe')('your_stripe_secret_key');
 
 require('dotenv').config()
@@ -129,15 +131,21 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/articlesbycategory', async (req, res) => {
-
-            let query = {};
-            if (req.query.tag) {
-                query.tags = req.query.tag;
+        app.get('/articlesbytag', async (req, res) => {
+            //console.log("Accessing /articlesbycatag endpoint")
+            try {
+                let query = {};
+                if (req.query.tag) {
+                    // Adjust for MongoDB native driver
+                    query.tags = { $in: [req.query.tag] };
+                }
+        
+                const articles = await articleCollection.find(query).toArray(); // Convert to array
+                res.json(articles);
+            } catch (error) {
+               // console.error("Error fetching articles:", error);
+                res.status(500).send("Error fetching articles");
             }
-
-            const result = await articleCollection.find(query).toArray();
-            res.send(result);
         });
 
         app.get('/articles/:id', async (req, res) => {
@@ -160,6 +168,30 @@ async function run() {
                 res.status(500).send({ message: "Internal Server Error" });
             }
         });
+
+        app.get('/filteredarticlesbypublisher', async (req, res) => {
+            try {
+                let query = {};
+        
+                // Filter by publisher
+                if (req.query.publisher) {
+                    query.publisher = req.query.publisher;
+                }
+        
+                // Search by title
+                if (req.query.search) {
+                    query.title = { $regex: req.query.search, $options: 'i' }; 
+                }
+        
+                // Fetch the articles from the database
+                const articles = await articleCollection.find(query).toArray();
+                res.json(articles);
+            } catch (error) {
+                console.error("Error fetching filtered articles:", error);
+                res.status(500).send("Error fetching articles");
+            }
+        });
+        
 
         app.get('/searcharticles', async (req, res) => {
             const { search, publisher, tags } = req.query;
@@ -427,6 +459,11 @@ async function run() {
             try {
                 const result = await userCollection.updateOne(filter, updateDoc);
 
+                if (result.modifiedCount > 0) {
+                    const updatedUser = await userCollection.findOne(filter);
+                    return res.json({ message: 'User updated successfully', modifiedCount: result.modifiedCount, user: updatedUser });
+                }
+
                 if (result.matchedCount === 0) {
                     return res.status(404).json({ message: 'User not found' });
                 }
@@ -476,6 +513,21 @@ async function run() {
             const result = await testimonialCollection.insertOne(newTestimonial);
             res.send(result);
         });
+
+        //weather api
+        app.post('/getWeather', async (req, res) => {
+            const { location } = req.body;
+            const apiKey = 'e7828b5f7021b724c484495c7b199330';
+          
+            try {
+              const url = `http://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${apiKey}`;
+              const response = await axios.get(url);
+              res.json(response.data);
+            } catch (error) {
+                console.error('Error fetching weather data:', error);
+                res.status(500).send('Internal Server Error');
+            }
+          });
 
         //Payment
         // app.post('/create-payment-intent', async (req, res) => {
